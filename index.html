@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0e10">
+<title>AutoVenda Pro</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-content">
+    <div class="loading-car">🚗</div>
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    <div class="loading-text">Carregando dados...</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">🚗</div>
+    <h1 class="login-title">AutoVenda <span>Pro</span></h1>
+    <p class="login-subtitle">CRM de Vendas</p>
+    <div class="login-form">
+      <input type="text" id="loginUser" placeholder="Usuário" autocomplete="username" />
+      <input type="password" id="loginPass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+      <div id="loginError" class="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app" style="display:none">
+
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🚗</div>
+      <div>
+        <div class="sidebar-title">AutoVenda <span>Pro</span></div>
+        <div class="sidebar-subtitle">CRM de Vendas</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-page="home" onclick="navigate('home')">
+        <span class="nav-icon">🏠</span> <span>Início</span>
+      </a>
+      <a class="nav-item" data-page="clients" onclick="navigate('clients')">
+        <span class="nav-icon">👥</span> <span>Clientes</span>
+      </a>
+      <a class="nav-item" data-page="agenda" onclick="navigate('agenda')">
+        <span class="nav-icon">📅</span> <span>Agenda</span>
+      </a>
+      <a class="nav-item" data-page="more" onclick="navigate('more')">
+        <span class="nav-icon">☰</span> <span>Mais</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sync-status">
+        <span class="sync-dot online"></span> Online
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- MOBILE HEADER -->
+    <header class="mobile-header">
+      <button class="header-btn" onclick="toggleMenu()">☰</button>
+      <div class="header-title">🚗 AutoVenda <span>Pro</span></div>
+      <button class="header-btn" onclick="syncData()" id="syncBtn">🔄</button>
+    </header>
+
+    <!-- ============ HOME ============ -->
+    <section class="page active" id="page-home">
+      <div class="page-content">
+        <div class="greeting">
+          <h1 id="greetingText">Bom dia, Celso! 👋</h1>
+          <p>Aqui está sua direção de hoje.</p>
+        </div>
+
+        <div class="section-label">SUA DIREÇÃO DE HOJE</div>
+        <div class="temp-cards">
+          <div class="temp-card hot" onclick="filterByTemp('hot')">
+            <div class="temp-icon">🔥</div>
+            <div class="temp-count" id="homeHotCount">0</div>
+            <div class="temp-label">Quentes</div>
+            <div class="temp-sub">Fale hoje</div>
+          </div>
+          <div class="temp-card warm" onclick="filterByTemp('warm')">
+            <div class="temp-icon">☀️</div>
+            <div class="temp-count" id="homeWarmCount">0</div>
+            <div class="temp-label">Mornos</div>
+            <div class="temp-sub">Retomar</div>
+          </div>
+          <div class="temp-card cold" onclick="filterByTemp('cold')">
+            <div class="temp-icon">❄️</div>
+            <div class="temp-count" id="homeColdCount">0</div>
+            <div class="temp-label">Frios</div>
+            <div class="temp-sub">Acompanhar</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-label">PRÓXIMOS PARA CONTATO</div>
+          <a class="section-link" onclick="navigate('clients')">Ver todos</a>
+        </div>
+        <div class="client-list" id="homeClientList"></div>
+      </div>
+    </section>
+
+    <!-- ============ CLIENTS ============ -->
+    <section class="page" id="page-clients">
+      <div class="page-content">
+        <div class="page-title-row">
+          <h1>Clientes</h1>
+          <button class="icon-btn" onclick="toggleFilters()">⚙️</button>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Buscar cliente, empresa ou telefone..." oninput="renderClients()" />
+        </div>
+
+        <div class="temp-filters">
+          <button class="temp-pill active" data-temp="all" onclick="setTempFilter('all')">Todos</button>
+          <button class="temp-pill" data-temp="hot" onclick="setTempFilter('hot')">🔥 Quentes</button>
+          <button class="temp-pill" data-temp="warm" onclick="setTempFilter('warm')">☀️ Mornos</button>
+          <button class="temp-pill" data-temp="cold" onclick="setTempFilter('cold')">❄️ Frios</button>
+          <button class="temp-pill" data-temp="none" onclick="setTempFilter('none')">Sem contato</button>
+        </div>
+
+        <div id="clientCount" class="result-count"></div>
+        <div class="client-list" id="clientList"></div>
+        <div class="load-more" id="loadMoreBox" style="display:none">
+          <button class="btn-outline" onclick="loadMoreClients()">Ver mais</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CLIENT DETAILS ============ -->
+    <section class="page" id="page-client-detail">
+      <div class="detail-header">
+        <button class="header-btn" onclick="navigate('clients')">←</button>
+        <div class="detail-title">Detalhes do Cliente</div>
+        <button class="header-btn" onclick="openEditClient()">⋮</button>
+      </div>
+      <div class="page-content">
+        <div class="detail-avatar-box">
+          <div class="avatar-big" id="detailAvatar">--</div>
+          <h2 id="detailName">--</h2>
+          <p id="detailCompany">--</p>
+          <div id="detailTemp" class="temp-badge"></div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="action-btn whatsapp" onclick="openWhatsAppCurrent()">
+            <span class="action-icon">💬</span><span>WhatsApp</span>
+          </button>
+          <button class="action-btn" onclick="callClient()">
+            <span class="action-icon">📞</span><span>Ligar</span>
+          </button>
+          <button class="action-btn" onclick="openNoteModal()">
+            <span class="action-icon">📝</span><span>Anotar</span>
+          </button>
+          <button class="action-btn" onclick="openEditClient()">
+            <span class="action-icon">✏️</span><span>Editar</span>
+          </button>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">Informações</div>
+          <div class="info-row" id="detailPhoneRow">
+            <span class="info-icon">📱</span>
+            <span class="info-value" id="detailPhone">--</span>
+            <button class="copy-btn" onclick="copyText(document.getElementById('detailPhone').textContent)">📋</button>
+          </div>
+          <div class="info-row" id="detailEmailRow">
+            <span class="info-icon">✉️</span>
+            <span class="info-value" id="detailEmail">--</span>
+            <button class="copy-btn" onclick="copyText(document.getElementById('detailEmail').textContent)">📋</button>
+          </div>
+          <div class="info-row" id="detailLocationRow">
+            <span class="info-icon">📍</span>
+            <span class="info-value" id="detailLocation">--</span>
+          </div>
+          <div class="info-row" id="detailCnpjRow">
+            <span class="info-icon">🏢</span>
+            <span class="info-value" id="detailCnpj">--</span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">Último contato</div>
+          <div class="last-contact-text" id="detailLastContact">Nunca contatado</div>
+          <div class="last-contact-obs" id="detailLastObs"></div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">Observações</div>
+          <div id="detailObs" class="observations-text">--</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">Histórico de contatos</div>
+          <div id="detailHistory" class="history-timeline"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AGENDA ============ -->
+    <section class="page" id="page-agenda">
+      <div class="page-content">
+        <div class="page-title-row">
+          <h1>Agenda</h1>
+          <button class="icon-btn primary" onclick="openNewAgendaModal()">+</button>
+        </div>
+
+        <div class="week-strip" id="weekStrip"></div>
+
+        <div class="agenda-date-label" id="agendaDateLabel"></div>
+        <div class="agenda-list" id="agendaList"></div>
+      </div>
+    </section>
+
+    <!-- ============ MORE ============ -->
+    <section class="page" id="page-more">
+      <div class="page-content">
+        <h1>Mais</h1>
+
+        <div class="more-list">
+          <a class="more-item" onclick="openImportModal()">
+            <span class="more-icon">📥</span>
+            <div class="more-info">
+              <div class="more-title">Importar Contatos</div>
+              <div class="more-sub">CSV ou Excel</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+          <a class="more-item" onclick="syncData()">
+            <span class="more-icon">🔄</span>
+            <div class="more-info">
+              <div class="more-title">Sincronizar com Google Sheets</div>
+              <div class="more-sub" id="lastSyncText">Última sincronização: --</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+          <a class="more-item" onclick="navigate('reports')">
+            <span class="more-icon">📊</span>
+            <div class="more-info">
+              <div class="more-title">Relatórios</div>
+              <div class="more-sub">Ver indicadores da carteira</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+          <a class="more-item" onclick="navigate('settings')">
+            <span class="more-icon">⚙️</span>
+            <div class="more-info">
+              <div class="more-title">Configurações</div>
+              <div class="more-sub">Ajustes do sistema</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+          <a class="more-item" onclick="exportBackup()">
+            <span class="more-icon">💾</span>
+            <div class="more-info">
+              <div class="more-title">Backup</div>
+              <div class="more-sub">Exportar dados</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+          <a class="more-item" onclick="navigate('about')">
+            <span class="more-icon">ℹ️</span>
+            <div class="more-info">
+              <div class="more-title">Sobre</div>
+              <div class="more-sub">AutoVenda Pro v3.0</div>
+            </div>
+            <span class="more-arrow">›</span>
+          </a>
+        </div>
+
+        <button class="logout-btn" onclick="doLogout()">↪ Sair do Sistema</button>
+      </div>
+    </section>
+
+    <!-- ============ REPORTS ============ -->
+    <section class="page" id="page-reports">
+      <div class="detail-header">
+        <button class="header-btn" onclick="navigate('more')">←</button>
+        <div class="detail-title">Relatórios</div>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <div class="report-stats">
+          <div class="stat-box"><div class="stat-num" id="rTotal">0</div><div class="stat-label">Total</div></div>
+          <div class="stat-box"><div class="stat-num hot" id="rHot">0</div><div class="stat-label">Quentes</div></div>
+          <div class="stat-box"><div class="stat-num warm" id="rWarm">0</div><div class="stat-label">Mornos</div></div>
+          <div class="stat-box"><div class="stat-num cold" id="rCold">0</div><div class="stat-label">Frios</div></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title">Top 10 Clientes</div>
+          <div id="rTopClients" class="client-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="page" id="page-settings">
+      <div class="detail-header">
+        <button class="header-btn" onclick="navigate('more')">←</button>
+        <div class="detail-title">Configurações</div>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <div class="info-card">
+          <div class="info-card-title">Backup de Dados</div>
+          <p class="card-desc">Force o envio dos dados para o Google Sheets.</p>
+          <button class="btn-primary" onclick="forceSyncToSheets()">💾 Forçar Backup no Sheets</button>
+          <button class="btn-outline" onclick="exportBackup()">📤 Exportar JSON</button>
+          <div id="syncStatus" class="sync-result"></div>
+        </div>
+        <div class="info-card danger">
+          <div class="info-card-title">Zona de Perigo</div>
+          <p class="card-desc">Limpar todos os dados locais (não afeta o Sheets).</p>
+          <button class="btn-danger" onclick="clearLocalCache()">🗑️ Limpar Cache Local</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="page" id="page-about">
+      <div class="detail-header">
+        <button class="header-btn" onclick="navigate('more')">←</button>
+        <div class="detail-title">Sobre</div>
+        <div></div>
+      </div>
+      <div class="page-content" style="text-align:center;padding-top:3rem">
+        <div style="font-size:4rem">🚗</div>
+        <h2>AutoVenda Pro</h2>
+        <p>Versão 3.0</p>
+        <p style="margin-top:2rem;color:var(--text2)">CRM mobile focado em relacionamento humano.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION (MOBILE) -->
+  <nav class="bottom-nav">
+    <a class="bn-item active" data-page="home" onclick="navigate('home')">
+      <span class="bn-icon">🏠</span>
+      <span class="bn-label">Início</span>
+    </a>
+    <a class="bn-item" data-page="clients" onclick="navigate('clients')">
+      <span class="bn-icon">👥</span>
+      <span class="bn-label">Clientes</span>
+    </a>
+    <a class="bn-item bn-fab" onclick="openNewClientModal()">
+      <span class="bn-fab-icon">+</span>
+    </a>
+    <a class="bn-item" data-page="agenda" onclick="navigate('agenda')">
+      <span class="bn-icon">📅</span>
+      <span class="bn-label">Agenda</span>
+    </a>
+    <a class="bn-item" data-page="more" onclick="navigate('more')">
+      <span class="bn-icon">☰</span>
+      <span class="bn-label">Mais</span>
+    </a>
+  </nav>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- New / Edit Client -->
+<div id="clientModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="header-btn" onclick="closeClientModal()">←</button>
+      <div class="detail-title" id="clientModalTitle">Novo Cliente</div>
+      <div></div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="m_id" />
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="m_nome" placeholder="Nome do cliente" />
+      </div>
+      <div class="form-group">
+        <label>Empresa</label>
+        <input type="text" id="m_empresa" placeholder="Nome da empresa" />
+      </div>
+      <div class="form-group">
+        <label>Telefone / WhatsApp *</label>
+        <div class="input-with-btn">
+          <input type="text" id="m_telefone" placeholder="(11) 00000-0000" />
+          <button class="whatsapp-mini" onclick="quickWhatsAppFromForm()">💬</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="m_email" placeholder="email@exemplo.com" />
+      </div>
+      <div class="form-group">
+        <label>CNPJ</label>
+        <input type="text" id="m_cnpj" placeholder="00.000.000/0000-00" />
+      </div>
+      <div class="form-group">
+        <label>Cidade</label>
+        <input type="text" id="m_cidade" placeholder="Cidade - UF" />
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <textarea id="m_obs" rows="4" placeholder="Observações sobre o cliente..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary full" onclick="saveClientForm()">Salvar Cliente</button>
+      <button class="btn-danger-outline full" id="deleteClientBtn" onclick="deleteClient()" style="display:none">Excluir Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Note -->
+<div id="noteModal" class="modal-overlay">
+  <div class="modal small">
+    <div class="modal-header">
+      <button class="header-btn" onclick="closeNoteModal()">←</button>
+      <div class="detail-title">Nova Anotação</div>
+      <div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Anotação</label>
+        <textarea id="noteText" rows="5" placeholder="O que aconteceu nesse contato?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="noteType">
+          <option value="whatsapp">💬 WhatsApp</option>
+          <option value="call">📞 Ligação</option>
+          <option value="visit">🤝 Visita</option>
+          <option value="email">✉️ E-mail</option>
+          <option value="note">📝 Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary full" onclick="saveNote()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Agenda -->
+<div id="agendaModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="header-btn" onclick="closeAgendaModal()">←</button>
+      <div class="detail-title" id="agendaModalTitle">Novo Compromisso</div>
+      <div></div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="a_id" />
+      <div class="form-group">
+        <label>Cliente</label>
+        <select id="a_client"></select>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" id="a_date" />
+      </div>
+      <div class="form-group">
+        <label>Hora</label>
+        <input type="time" id="a_time" />
+      </div>
+      <div class="form-group">
+        <label>Observação</label>
+        <textarea id="a_obs" rows="3" placeholder="O que precisa fazer?"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary full" onclick="saveAgenda()">Salvar</button>
+      <button class="btn-danger-outline full" id="deleteAgendaBtn" onclick="deleteAgenda()" style="display:none">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import -->
+<div id="importModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="header-btn" onclick="closeImportModal()">←</button>
+      <div class="detail-title">Importar Contatos</div>
+      <div></div>
+    </div>
+    <div class="modal-body">
+      <p class="card-desc">Importe um arquivo CSV ou Excel com seus contatos.</p>
+      <div class="form-group">
+        <label>Arquivo</label>
+        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" onchange="handleImportFile(event)" />
+      </div>
+      <div id="importPreview" style="display:none">
+        <div id="importCount" class="import-info"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary full" id="importConfirmBtn" onclick="confirmImport()" style="display:none">Confirmar Importação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
